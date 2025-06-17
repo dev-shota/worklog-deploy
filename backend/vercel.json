@@ -15,7 +15,7 @@
   "env": {
     "NODE_ENV": "production",
     "DATABASE_URL": "postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/worklog_prod?sslmode=require",
-    "CORS_ORIGINS": "https://worklog-ls07eqob3-dev-shotas-projects.vercel.app"
+    "CORS_ORIGINS": "https://worklog-o9uzb6jxk-dev-shotas-projects.vercel.app"
   },
   "installCommand": "npm install",
   "buildCommand": "npm run build"
