@@ -7,7 +7,11 @@ export const config = {
   nodeEnv: process.env.NODE_ENV || 'development',
   databasePath: process.env.DATABASE_PATH || './data/worklog.sqlite',
   jwtSecret: process.env.JWT_SECRET || 'fallback-secret-key',
-  corsOrigins: process.env.CORS_ORIGINS?.split(',') || ['http://localhost:5173'],
+  corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://localhost:5173'
+  ],
   rateLimitWindowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
   rateLimitMaxRequests: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
 } as const;

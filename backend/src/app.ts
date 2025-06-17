@@ -15,7 +15,7 @@ export const createApp = (db: Database): express.Application => {
   app.use(helmet());
   
   app.use(cors({
-    origin: config.corsOrigins,
+    origin: config.nodeEnv === 'production' ? true : config.corsOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
