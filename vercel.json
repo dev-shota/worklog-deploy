@@ -7,16 +7,24 @@
       "config": {
         "distDir": "dist"
       }
-    },
-    {
-      "src": "backend/dist/index.js",
-      "use": "@vercel/node"
     }
   ],
+  "functions": {
+    "api/index.ts": {
+      "runtime": "@vercel/node@3"
+    },
+    "api/health.ts": {
+      "runtime": "@vercel/node@3"
+    }
+  },
   "routes": [
     {
+      "src": "/api/health",
+      "dest": "/api/health.ts"
+    },
+    {
       "src": "/api/(.*)",
-      "dest": "/backend/dist/index.js"
+      "dest": "/api/index.ts"
     },
     {
       "handle": "filesystem"
@@ -29,8 +37,9 @@
   "env": {
     "NODE_ENV": "production",
     "DATABASE_URL": "postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/worklog_prod?sslmode=require",
+    "JWT_SECRET": "worklog-production-jwt-secret-2025",
+    "CORS_ORIGINS": "*",
     "VITE_USE_BACKEND": "true",
     "VITE_API_BASE_URL": "/api"
-  },
-  "buildCommand": "npm run build && cd backend && npm run build"
+  }
 }

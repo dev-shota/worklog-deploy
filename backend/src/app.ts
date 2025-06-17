@@ -44,8 +44,8 @@ export const createApp = (db: Database): express.Application => {
     } as ApiResponse);
   });
 
-  app.use('/api/auth', createAuthRouter(db));
-  app.use('/api/entries', createEntriesRouter(db));
+  app.use('/auth', createAuthRouter(db));
+  app.use('/entries', createEntriesRouter(db));
 
   app.use('*', (req, res) => {
     res.status(404).json({
