@@ -73,19 +73,32 @@ class DatabaseWrapper implements Database {
 export const initializeDatabase = async (): Promise<Database> => {
   const databaseUrl = process.env.DATABASE_URL;
   
+  console.log('Environment check:', {
+    NODE_ENV: process.env.NODE_ENV,
+    DATABASE_URL_EXISTS: !!databaseUrl,
+    DATABASE_URL_PREFIX: databaseUrl?.substring(0, 20) + '...'
+  });
+  
   if (databaseUrl) {
     // Use PostgreSQL if DATABASE_URL is provided
-    console.log('Connecting to PostgreSQL database...');
-    const pgDatabase = createPostgreSQLDatabase(databaseUrl);
-    
-    // Test connection
+    console.log('Initializing PostgreSQL database connection...');
     try {
-      await pgDatabase.query('SELECT 1');
-      console.log('Connected to PostgreSQL database successfully');
+      const pgDatabase = createPostgreSQLDatabase(databaseUrl);
+      
+      // Test connection with timeout
+      console.log('Testing PostgreSQL connection...');
+      await Promise.race([
+        pgDatabase.query('SELECT 1 as test'),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Connection timeout')), 8000)
+        )
+      ]);
+      
+      console.log('PostgreSQL database connection successful');
       return pgDatabase;
     } catch (error) {
-      console.error('Failed to connect to PostgreSQL:', error);
-      throw error;
+      console.error('PostgreSQL connection failed:', error);
+      throw new Error(`Database connection failed: ${error.message}`);
     }
   } else {
     // Fallback to SQLite
@@ -170,24 +183,111 @@ export const createTables = async (db: Database): Promise<void> => {
 // PostgreSQL table creation using migration SQL
 const createPostgreSQLTables = async (db: PostgreSQLDatabase): Promise<void> => {
   try {
-    // Read and execute migration file
-    const migrationPath = path.join(process.cwd(), 'src/migrations/001_initial_schema.sql');
+    // Multiple path attempts for different deployment environments
+    const possiblePaths = [
+      // Vercel serverless environment
+      path.join(process.cwd(), 'backend/src/migrations/001_initial_schema.sql'),
+      // Local development
+      path.join(process.cwd(), 'src/migrations/001_initial_schema.sql'),
+      // Alternative Vercel path
+      path.join(__dirname, '../migrations/001_initial_schema.sql'),
+      // Relative to current file
+      path.resolve(__dirname, '../migrations/001_initial_schema.sql')
+    ];
     
-    if (fs.existsSync(migrationPath)) {
-      const migrationSQL = fs.readFileSync(migrationPath, 'utf8');
-      
-      // Execute the entire migration SQL as one statement
-      // PostgreSQL can handle multiple statements in one execution
-      await db.query(migrationSQL);
-      
-      console.log('PostgreSQL tables created successfully from migration');
-    } else {
-      throw new Error('Migration file not found: ' + migrationPath);
+    let migrationPath: string | null = null;
+    let migrationSQL: string | null = null;
+    
+    // Try each possible path
+    for (const testPath of possiblePaths) {
+      if (fs.existsSync(testPath)) {
+        migrationPath = testPath;
+        migrationSQL = fs.readFileSync(testPath, 'utf8');
+        console.log('Migration file found at:', testPath);
+        break;
+      }
     }
+    
+    if (!migrationPath || !migrationSQL) {
+      // If no file found, create tables inline as fallback
+      console.log('Migration file not found, creating tables inline...');
+      await createTablesInline(db);
+      return;
+    }
+    
+    // Execute the migration SQL
+    await db.query(migrationSQL);
+    console.log('PostgreSQL tables created successfully from migration file');
   } catch (error) {
     console.error('Error creating PostgreSQL tables:', error);
-    throw error;
+    // Fallback to inline table creation
+    console.log('Attempting fallback inline table creation...');
+    try {
+      await createTablesInline(db);
+      console.log('Fallback table creation successful');
+    } catch (fallbackError) {
+      console.error('Fallback table creation failed:', fallbackError);
+      throw error;
+    }
   }
+};
+
+// Fallback inline table creation
+const createTablesInline = async (db: PostgreSQLDatabase): Promise<void> => {
+  const createCompanyAccountsTable = `
+    CREATE TABLE IF NOT EXISTS company_accounts (
+      id SERIAL PRIMARY KEY,
+      company_id VARCHAR(255) UNIQUE NOT NULL,
+      company_name VARCHAR(255) NOT NULL,
+      login_id VARCHAR(255) UNIQUE NOT NULL,
+      password_hash VARCHAR(255) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    );
+  `;
+
+  const createAttendanceEntriesTable = `
+    CREATE TABLE IF NOT EXISTS attendance_entries (
+      id TEXT PRIMARY KEY,
+      company_id VARCHAR(255) NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      date DATE NOT NULL,
+      day_of_week VARCHAR(20) NOT NULL,
+      site_name VARCHAR(255) NOT NULL,
+      work_description TEXT NOT NULL,
+      start_time VARCHAR(20) NOT NULL,
+      end_time VARCHAR(20) NOT NULL,
+      total_hours VARCHAR(20) NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+      CONSTRAINT fk_attendance_company 
+        FOREIGN KEY (company_id) 
+        REFERENCES company_accounts(company_id) 
+        ON DELETE CASCADE
+    );
+  `;
+
+  const createIndexes = `
+    CREATE INDEX IF NOT EXISTS idx_attendance_company_date 
+      ON attendance_entries(company_id, date);
+    CREATE INDEX IF NOT EXISTS idx_company_login_id 
+      ON company_accounts(login_id);
+  `;
+
+  const insertDemoAccount = `
+    INSERT INTO company_accounts (company_id, company_name, login_id, password_hash)
+    VALUES (
+      'demo-company',
+      'デモ会社',
+      'admin',
+      '$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeEvMCRcBkQLtFc0O'
+    ) ON CONFLICT (company_id) DO NOTHING;
+  `;
+
+  await db.query(createCompanyAccountsTable);
+  await db.query(createAttendanceEntriesTable);
+  await db.query(createIndexes);
+  await db.query(insertDemoAccount);
 };
 
 export type { Database };

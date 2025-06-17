@@ -13,10 +13,28 @@ export class PostgreSQLDatabase implements Database {
   constructor(config: PostgreSQLConfig) {
     this.pool = new Pool({
       connectionString: config.connectionString,
-      ssl: config.ssl ? { rejectUnauthorized: false } : false,
-      max: 20, // Maximum pool size
-      idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 10000,
+      ssl: config.ssl !== false ? { rejectUnauthorized: false } : false,
+      // Optimized for Vercel serverless
+      max: 1, // Single connection for serverless
+      min: 0, // Allow pool to scale to zero
+      idleTimeoutMillis: 10000, // Shorter idle timeout
+      connectionTimeoutMillis: 5000, // Faster timeout
+      acquireTimeoutMillis: 5000, // Connection acquisition timeout
+      createTimeoutMillis: 5000, // Connection creation timeout
+    });
+
+    // Handle pool errors
+    this.pool.on('error', (err) => {
+      console.error('PostgreSQL pool error:', err);
+    });
+
+    // Log connection events for debugging
+    this.pool.on('connect', (client) => {
+      console.log('PostgreSQL client connected');
+    });
+
+    this.pool.on('remove', (client) => {
+      console.log('PostgreSQL client removed');
     });
   }
 
