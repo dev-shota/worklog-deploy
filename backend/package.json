@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@types/pg": "^8.15.4",
+    "@vitejs/plugin-react": "^4.5.2",
+    "autoprefixer": "^10.4.21",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
@@ -26,7 +28,10 @@
     "jsonwebtoken": "^9.0.2",
     "node-fetch": "^3.3.2",
     "pg": "^8.16.0",
-    "sqlite3": "^5.1.6"
+    "postcss": "^8.5.6",
+    "sqlite3": "^5.1.6",
+    "tailwindcss": "^4.1.10",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
