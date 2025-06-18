@@ -32,20 +32,20 @@ CREATE TABLE IF NOT EXISTS attendance_entries (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     
     -- Foreign key constraint
-    CONSTRAINT fk_attendance_company 
-        FOREIGN KEY (company_id) 
-        REFERENCES company_accounts(company_id) 
+    CONSTRAINT fk_attendance_company
+        FOREIGN KEY (company_id)
+        REFERENCES company_accounts(company_id)
         ON DELETE CASCADE
 );
 
 -- Indexes for performance optimization
-CREATE INDEX IF NOT EXISTS idx_attendance_company_date 
+CREATE INDEX IF NOT EXISTS idx_attendance_company_date
     ON attendance_entries(company_id, date);
 
-CREATE INDEX IF NOT EXISTS idx_attendance_company_name 
+CREATE INDEX IF NOT EXISTS idx_attendance_company_name
     ON attendance_entries(company_id, name);
 
-CREATE INDEX IF NOT EXISTS idx_company_login_id 
+CREATE INDEX IF NOT EXISTS idx_company_login_id
     ON company_accounts(login_id);
 
 -- Trigger to automatically update updated_at timestamps
@@ -59,14 +59,14 @@ $$ language 'plpgsql';
 
 -- Apply trigger to company_accounts
 DROP TRIGGER IF EXISTS update_company_accounts_updated_at ON company_accounts;
-CREATE TRIGGER update_company_accounts_updated_at 
-    BEFORE UPDATE ON company_accounts 
+CREATE TRIGGER update_company_accounts_updated_at
+    BEFORE UPDATE ON company_accounts
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Apply trigger to attendance_entries
 DROP TRIGGER IF EXISTS update_attendance_entries_updated_at ON attendance_entries;
-CREATE TRIGGER update_attendance_entries_updated_at 
-    BEFORE UPDATE ON attendance_entries 
+CREATE TRIGGER update_attendance_entries_updated_at
+    BEFORE UPDATE ON attendance_entries
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- Insert demo company account (equivalent to SQLite seed data)

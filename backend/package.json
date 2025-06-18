@@ -3,7 +3,6 @@
   "version": "1.0.0",
   "description": "Backend API for WorkLog attendance tracking app",
   "main": "dist/index.js",
-  "type": "module",
   "scripts": {
     "start": "node dist/index.js",
     "dev": "nodemon --exec tsx src/index.ts",

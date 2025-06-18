@@ -4,8 +4,9 @@ import path from 'path';
 import fs from 'fs';
 import { createPostgreSQLDatabase, PostgreSQLDatabase } from './postgresql.js';
 
-const { verbose } = sqlite3;
-const sqlite = verbose();
+// CommonJSでは__dirnameが自動で利用可能なため、ES Module用の定義を削除
+
+const sqlite = sqlite3.verbose();
 
 interface Database {
   run(sql: string, params?: any[]): Promise<sqlite3.RunResult>;
@@ -23,7 +24,7 @@ class DatabaseWrapper implements Database {
 
   run(sql: string, params: any[] = []): Promise<sqlite3.RunResult> {
     return new Promise((resolve, reject) => {
-      this.db.run(sql, params, function(err) {
+      this.db.run(sql, params, function(this: sqlite3.RunResult, err: Error | null) {
         if (err) {
           reject(err);
         } else {
@@ -35,7 +36,7 @@ class DatabaseWrapper implements Database {
 
   get<T = any>(sql: string, params: any[] = []): Promise<T | undefined> {
     return new Promise((resolve, reject) => {
-      this.db.get(sql, params, (err, row) => {
+      this.db.get(sql, params, (err: Error | null, row: any) => {
         if (err) {
           reject(err);
         } else {
@@ -47,7 +48,7 @@ class DatabaseWrapper implements Database {
 
   all<T = any>(sql: string, params: any[] = []): Promise<T[]> {
     return new Promise((resolve, reject) => {
-      this.db.all(sql, params, (err, rows) => {
+      this.db.all(sql, params, (err: Error | null, rows: any[]) => {
         if (err) {
           reject(err);
         } else {
@@ -59,7 +60,7 @@ class DatabaseWrapper implements Database {
 
   close(): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.db.close((err) => {
+      this.db.close((err: Error | null) => {
         if (err) {
           reject(err);
         } else {
@@ -89,7 +90,7 @@ export const initializeDatabase = async (): Promise<Database> => {
       console.log('Testing PostgreSQL connection...');
       await Promise.race([
         pgDatabase.query('SELECT 1 as test'),
-        new Promise((_, reject) => 
+        new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error('Connection timeout')), 8000)
         )
       ]);
@@ -110,8 +111,8 @@ export const initializeDatabase = async (): Promise<Database> => {
       fs.mkdirSync(dataDir, { recursive: true });
     }
 
-    return new Promise((resolve, reject) => {
-      const db = new sqlite.Database(databasePath, (err) => {
+    return new Promise<Database>((resolve, reject) => {
+      const db = new sqlite.Database(databasePath, (err: Error | null) => {
         if (err) {
           reject(err);
         } else {
@@ -166,7 +167,7 @@ export const createTables = async (db: Database): Promise<void> => {
   `;
 
   const indexCompanyEntries = `
-    CREATE INDEX IF NOT EXISTS idx_attendance_company_date 
+    CREATE INDEX IF NOT EXISTS idx_attendance_company_date
     ON attendance_entries(company_id, date)
   `;
 
@@ -190,9 +191,8 @@ const createPostgreSQLTables = async (db: PostgreSQLDatabase): Promise<void> => 
       path.join(process.cwd(), 'backend/src/migrations/001_initial_schema.sql'),
       // Local development
       path.join(process.cwd(), 'src/migrations/001_initial_schema.sql'),
-      // Alternative Vercel path
+      // CommonJS環境では__dirnameが利用可能
       path.join(__dirname, '../migrations/001_initial_schema.sql'),
-      // Relative to current file
       path.resolve(__dirname, '../migrations/001_initial_schema.sql')
     ];
     
@@ -261,17 +261,17 @@ const createTablesInline = async (db: PostgreSQLDatabase): Promise<void> => {
       total_hours VARCHAR(20) NOT NULL,
       created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-      CONSTRAINT fk_attendance_company 
-        FOREIGN KEY (company_id) 
-        REFERENCES company_accounts(company_id) 
+      CONSTRAINT fk_attendance_company
+        FOREIGN KEY (company_id)
+        REFERENCES company_accounts(company_id)
         ON DELETE CASCADE
     );
   `;
 
   const createIndexes = `
-    CREATE INDEX IF NOT EXISTS idx_attendance_company_date 
+    CREATE INDEX IF NOT EXISTS idx_attendance_company_date
       ON attendance_entries(company_id, date);
-    CREATE INDEX IF NOT EXISTS idx_company_login_id 
+    CREATE INDEX IF NOT EXISTS idx_company_login_id
       ON company_accounts(login_id);
   `;
 

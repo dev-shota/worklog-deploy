@@ -12,6 +12,9 @@ import { ApiResponse } from './types/index.js';
 export const createApp = (db: Database): express.Application => {
   const app = express();
 
+  // Vercel環境でのProxy設定（express-rate-limitより前に設定）
+  app.set('trust proxy', 1);
+
   app.use(helmet());
   
   app.use(cors({
@@ -21,6 +24,7 @@ export const createApp = (db: Database): express.Application => {
     allowedHeaders: ['Content-Type', 'Authorization']
   }));
 
+  // Rate limiting（trustProxyプロパティを削除）
   const limiter = rateLimit({
     windowMs: config.rateLimitWindowMs,
     max: config.rateLimitMaxRequests,
@@ -29,7 +33,11 @@ export const createApp = (db: Database): express.Application => {
       error: 'リクエストが多すぎます。しばらく待ってから再試行してください。'
     } as ApiResponse,
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    // ヘルスチェックはスキップ
+    skip: (req) => {
+      return req.path === '/health';
+    }
   });
   app.use(limiter);
 

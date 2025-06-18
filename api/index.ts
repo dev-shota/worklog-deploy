@@ -13,7 +13,6 @@ async function initializeApp(): Promise<void> {
   }
 
   console.log('Starting serverless function initialization...');
-  
   try {
     // Initialize database connection
     console.log('Initializing database...');
@@ -40,6 +39,7 @@ async function initializeApp(): Promise<void> {
   }
 }
 
+// ES Module形式でのデフォルトエクスポート
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // Log request details for debugging
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
@@ -69,10 +69,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle the request with the Express app
     cachedApp(req, res);
   } catch (error) {
-  console.error('Serverless function error:', error);
-  console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
-  
-  // Send proper error response
+    console.error('Serverless function error:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+    
+    // Send proper error response
     if (!res.headersSent) {
       res.status(500).json({
         success: false,

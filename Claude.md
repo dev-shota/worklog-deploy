@@ -31,11 +31,11 @@
 
 技術的実装は完了しており、以下の機能が動作可能な状態です：
 
-- ✅ **フルスタックアーキテクチャ** - React + Node.js + PostgreSQL
+- ✅ **フルスタックアーキテクチャ** - React 19.1.0 + Node.js + PostgreSQL
 - ✅ **PostgreSQLデータベース** - Neon Cloud (10/10 APIテスト通過)
-- ✅ **JWT認証システム** - bcrypt + セキュアトークン
+- ✅ **JWT認証システム** - bcrypt (saltRounds: 12) + セキュアトークン (24時間有効)
 - ✅ **RESTful API** - 全エンドポイント実装完了
-- ✅ **Vercelデプロイメント** - フロント・バック両方稼働中
+- ✅ **Vercelデプロイメント** - 統合デプロイメント（フロント・バック同一プロジェクト）
 
 ### ✅ **最近の改善**
 
@@ -68,16 +68,16 @@ WorkLogは、**React + Node.js による完全なフルスタックWebアプリ�
 ### 🏗️ **システム全体構成**
 
 ```
-┌─────────────────┐    HTTPS    ┌──────────────────┐    SQLite   ┌─────────────┐
-│   React SPA     │ ←────────→ │  Node.js API     │ ←────────→ │  Database   │
-│  (Frontend)     │   REST API   │   (Backend)      │             │             │
-│                 │             │                  │             │             │
-│ • 認証UI        │             │ • JWT認証        │             │ • 会社管理   │
-│ • データ入力     │             │ • CRUD API       │             │ • 出勤記録   │
-│ • 一覧・出力     │             │ • セキュリティ    │             │ • インデックス │
-└─────────────────┘             └──────────────────┘             └─────────────┘
-   Vercel Static                    Vercel Serverless              Ephemeral Storage
-```
+┌─────────────────┐    HTTPS    ┌──────────────────┐  PostgreSQL  ┌─────────────┐
+│   React SPA     │ ←────────→ │  Node.js API     │ ←──────────→ │  Database   │
+│  (Frontend)     │   REST API   │   (Backend)      │   (Neon)      │  (Neon Cloud)│
+│                 │             │                  │               │             │
+│ • 認証UI        │             │ • JWT認証        │               │ • 会社管理   │
+│ • データ入力     │             │ • CRUD API       │               │ • 出勤記録   │
+│ • 一覧・出力     │             │ • セキュリティ    │               │ • インデックス │
+└─────────────────┘             └──────────────────┘               └─────────────┘
+   Vercel Static                    Vercel Serverless                 PostgreSQL
+   (同一プロジェクト)                Functions (/api/*)                (永続化)
 
 ---
 
@@ -123,9 +123,9 @@ WorkLogは、**React + Node.js による完全なフルスタックWebアプリ�
 
 **技術スタック**:
 - React 19.1.0 + TypeScript 5.7.2
-- Vite (高速開発・ビルド)
-- Tailwind CSS (モダンスタイリング)
-- SheetJS (Excel出力)
+- Vite 6.2.0 (高速開発・ビルド)
+- Tailwind CSS 4.1.10 (モダンスタイリング)
+- SheetJS / xlsx 0.18.5 (Excel出力)
 
 **アーキテクチャ設計**:
 - **`services/apiService.ts`**: **実際のHTTP通信実装済み**
@@ -136,11 +136,12 @@ WorkLogは、**React + Node.js による完全なフルスタックWebアプリ�
 ### ⚙️ **バックエンド (Node.js API)**
 
 **技術スタック**:
-- Node.js + Express.js
-- TypeScript (型安全な開発)
-- SQLite (開発) / PostgreSQL対応可能
-- JWT認証 + bcryptハッシュ化
-- CORS + Helmet (セキュリティ)
+- Node.js + Express.js 4.18.2
+- TypeScript 5.3.2 (型安全な開発)
+- PostgreSQL (本番) / SQLite (開発・フォールバック)
+- JWT認証 (jsonwebtoken 9.0.2) + bcryptjs 2.4.3
+- CORS 2.8.5 + Helmet 7.1.0 (セキュリティ)
+- express-rate-limit 7.1.5 (レート制限)
 
 **API設計**:
 ```
@@ -193,13 +194,18 @@ ON attendance_entries(company_id, date);
 ### 🔒 **セキュリティ実装**
 
 **完全なセキュリティ対策済み**:
-- ✅ JWT認証トークン (HS256)
-- ✅ bcryptパスワードハッシュ化 (saltRounds: 10)
+- ✅ JWT認証トークン (HS256, 24時間有効)
+- ✅ bcryptパスワードハッシュ化 (saltRounds: 12)
 - ✅ CORS設定 (オリジン制限)
 - ✅ レート制限 (900秒/100リクエスト)
 - ✅ SQLインジェクション対策 (パラメータ化クエリ)
 - ✅ XSS対策 (Helmet middleware)
 - ✅ **テナント分離** (company_id必須検証)
+
+**デモアカウント情報**:
+- ログインID: `admin`
+- パスワード: `password`
+- ハッシュ値: `$2a$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LeEvMCRcBkQLtFc0O`
 
 **重要**: 各API呼び出しで `company_id` による厳密なアクセス制御を実装済み
 
@@ -215,6 +221,11 @@ ON attendance_entries(company_id, date);
 - **データベース**: PostgreSQL (Neon Cloud) - 永続ストレージ稼働中
 - **ヘルスチェック**: ![Deployment Status](https://img.shields.io/badge/Deployment-Active-brightgreen) ![API](https://img.shields.io/badge/API-Ready-brightgreen) ![Database](https://img.shields.io/badge/DB-PostgreSQL_Ready-brightgreen)
 
+**統合デプロイメント構造**:
+- **Vercel Serverless Functions**: `api/index.ts` が Express アプリを統合
+- **APIルーティング**: `/api/*` → `api/index.ts` → Express Router
+- **フロントエンド**: SPAフォールバック対応
+
 **デプロイメント履歴** (参考):
 - `https://worklog-deploy.vercel.app` - **現在の本番URL** ✅
 - `https://worklog-deploy-im6kr7tz1-dev-shotas-projects.vercel.app` - 最新デプロイメント
@@ -227,6 +238,7 @@ ON attendance_entries(company_id, date);
 - ✅ **データベース**: PostgreSQL (Neon Cloud) - 永続ストレージ
 - ✅ **HTTPS**: 自動SSL証明書
 - ✅ **CDN**: グローバル配信
+- ✅ **デュアルDB対応**: PostgreSQL優先、SQLiteフォールバック
 
 ### ⚙️ **本番環境設定**
 
@@ -281,16 +293,19 @@ VITE_NODE_ENV=production
 
 ### 📊 **Git Status - 修正待ちファイル (2025-01-18)**
 
-現在、以下の7ファイルが修正済みでコミット待ちの状態です：
+現在、以下のファイルが修正済みでコミット待ちの状態です：
 
 ```
-M Claude.md                        - ドキュメント更新 (進行中)
-M README.md                        - ドキュメント更新予定
-M api/index.ts                     - API設定更新
-M backend/.env.production          - 本番環境設定更新
-M backend/src/config/database.ts   - データベース設定更新
-M services/apiService.ts           - フロントエンドAPI設定更新
-M vercel.json                      - デプロイメント設定更新
+M api/index.ts                     - Serverless Functions設定
+M backend/package.json             - 依存関係更新
+M backend/src/app.ts               - Expressアプリ設定
+M backend/src/config/database.ts   - デュアルDB対応実装
+M backend/src/config/env.ts        - 環境変数設定
+M backend/src/migrations/001_initial_schema.sql - PostgreSQLスキーマ
+M backend/src/services/attendanceService.ts - 出勤サービスロジック
+M backend/src/services/authService.ts - 認証サービスロジック
+M backend/tsconfig.json            - TypeScript設定
+M package.json                     - プロジェクトルート設定
 ```
 
 ### 🔧 **2025-01-18に解決済み**
@@ -325,6 +340,7 @@ M vercel.json                      - デプロイメント設定更新
 #### 3. **環境設定の修正** ⚙️
 - **問題**: `backend/.env.production`がSQLiteを参照
 - **対応**: PostgreSQL設定に更新
+- **現状**: デュアルDB対応によりPostgreSQL優先で動作
 
 ### ✅ **推奨事項**
 
@@ -333,6 +349,10 @@ M vercel.json                      - デプロイメント設定更新
 
 #### ESLint設定
 - **推奨**: バックエンドに`.eslintrc.json`を作成してコード品質を保つ
+
+#### データベース接続プール
+- **設定**: Serverless用にmax: 1に最適化
+- **対応**: Neon Cloudのプーリング使用推奨
 
 ### 🚀 **今後の拡張予定**
 

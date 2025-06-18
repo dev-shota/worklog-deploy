@@ -3,7 +3,8 @@
 <div align="center">
   <img src="https://img.shields.io/badge/React-19.1.0-blue" alt="React">
   <img src="https://img.shields.io/badge/TypeScript-5.7.2-blue" alt="TypeScript">
-  <img src="https://img.shields.io/badge/Node.js-Express-green" alt="Node.js">
+  <img src="https://img.shields.io/badge/Vite-6.2.0-purple" alt="Vite">
+  <img src="https://img.shields.io/badge/Node.js-Express_4.18.2-green" alt="Node.js">
   <img src="https://img.shields.io/badge/Database-PostgreSQL-blue" alt="PostgreSQL">
   <img src="https://img.shields.io/badge/Auth-JWT-red" alt="JWT">
   <img src="https://img.shields.io/badge/Deploy-Vercel-black" alt="Vercel">
@@ -59,31 +60,34 @@ WorkLogは、会社単位で出勤データの入力・管理を行う完全なW
 ### フロントエンド
 - **React 19.1.0** - 最新のReactで高速なUIを実現
 - **TypeScript 5.7.2** - 型安全なコードでバグを削減
-- **Tailwind CSS (CDN)** - モダンで美しいデザイン
-- **Vite** - 超高速な開発環境
-- **SheetJS (XLSX)** - Excelファイルの読み書きに対応
+- **Vite 6.2.0** - 超高速な開発環境とビルド
+- **Tailwind CSS 4.1.10** - モダンで美しいデザイン
+- **SheetJS (xlsx 0.18.5)** - Excelファイルの読み書きに対応
 
 ### バックエンド
-- **Node.js + Express.js** - 高速で軽量なサーバー
-- **TypeScript** - 型安全なバックエンド開発
-- **PostgreSQL (Neon)** - 本番環境対応クラウドデータベース
-- **JWT認証** - セキュアなトークンベース認証
+- **Node.js + Express.js 4.18.2** - 高速で軽量なサーバー
+- **TypeScript 5.3.2** - 型安全なバックエンド開発
+- **PostgreSQL (Neon Cloud)** - 本番環境対応クラウドデータベース
+- **SQLite 5.1.6** - 開発環境・フォールバックデータベース
+- **JWT認証 (jsonwebtoken 9.0.2)** - セキュアなトークンベース認証
 - **RESTful API** - 標準的なAPI設計
-- **bcrypt** - パスワードハッシュ化
-- **CORS + Helmet** - セキュリティ強化
+- **bcryptjs 2.4.3** - パスワードハッシュ化 (saltRounds: 12)
+- **CORS 2.8.5 + Helmet 7.1.0** - セキュリティ強化
+- **express-rate-limit 7.1.5** - APIレート制限
 
 ## 🏗️ システムアーキテクチャ
 
 ```
 ┌─────────────────┐    HTTPS    ┌──────────────────┐   PostgreSQL  ┌─────────────┐
 │   React SPA     │ ←────────→ │  Node.js API     │ ←──────────→ │  Database   │
-│  (Frontend)     │   REST API   │   (Backend)      │   (Neon)      │             │
+│  (Frontend)     │   REST API   │   (Backend)      │   (Neon)      │  (Neon Cloud)│
 │                 │             │                  │               │             │
 │ • 認証UI        │             │ • JWT認証        │               │ • 会社管理   │
 │ • データ入力     │             │ • CRUD API       │               │ • 出勤記録   │
 │ • 一覧・出力     │             │ • セキュリティ    │               │ • インデックス │
 └─────────────────┘             └──────────────────┘               └─────────────┘
-   Vercel Static                    Vercel Serverless                Neon Cloud
+   Vercel Static                    Vercel Serverless                 PostgreSQL
+  (同一プロジェクト)                 Functions (/api/*)                  (永続化)
 ```
 
 ## 📡 API エンドポイント
@@ -158,7 +162,7 @@ npm install
 cd ..
 ```
 
-> **📝 注意**: 2025-01-17のアップデートで、フロントエンドの不足していた依存関係（`@vitejs/plugin-react`、`tailwindcss`、`xlsx`等）は解決済みです。
+> **📝 注意**: 2025-01-18のアップデートで、フロントエンドの不足していた依存関係（`@vitejs/plugin-react`、`tailwindcss`、`xlsx`等）は解決済みです。
 
 ### 環境変数の設定
 
@@ -174,7 +178,8 @@ VITE_NODE_ENV=development
 PORT=3001
 NODE_ENV=development
 # PostgreSQL本番データベース（Neon Cloud）
-DATABASE_URL=postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+# 注意: 本番環境では必ずVercel環境変数で管理してください
+DATABASE_URL=your-postgresql-connection-string
 # 開発用SQLite（フォールバック）
 DATABASE_PATH=./data/worklog.sqlite
 JWT_SECRET=your-secure-jwt-secret-here
@@ -183,6 +188,16 @@ CORS_ORIGINS=http://localhost:5173
 
 ### データベースの初期化
 
+**PostgreSQLの場合** (Neon Cloud使用):
+1. Neon Cloudでデータベースを作成
+2. 接続文字列を`DATABASE_URL`に設定
+3. マイグレーションを実行:
+```bash
+cd backend
+npm run migrate
+```
+
+**SQLiteの場合** (開発環境):
 ```bash
 cd backend
 npm run seed
@@ -321,9 +336,13 @@ vercel --prod
 ```env
 NODE_ENV=production
 JWT_SECRET=[セキュアなランダム文字列]  # ⚠️ セキュリティ: Vercel環境変数で管理
-DATABASE_URL=postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+DATABASE_URL=[あなたのPostgreSQL接続文字列]  # ⚠️ セキュリティ: Vercel環境変数で管理
 CORS_ORIGINS=https://worklog-deploy.vercel.app
 ```
+
+> **⚠️ 重要なセキュリティ警告**: 
+> - `DATABASE_URL`と`JWT_SECRET`は絶対にコードにハードコードしないでください
+> - Vercelダッシュボードの環境変数で安全に管理してください
 
 **フロントエンド環境変数** (`.env.production`):
 ```env
@@ -333,6 +352,7 @@ VITE_NODE_ENV=production
 ```
 
 > **✅ 更新済み**: 2025-01-18に環境変数とURL設定の同期が完了しました。
+> **🔧 システムの特徴**: デュアルデータベース対応により、`DATABASE_URL`が設定されている場合はPostgreSQLを使用し、未設定の場合はSQLiteにフォールバックします。
 
 ## 📝 今後の機能拡張予定
 
@@ -421,56 +441,149 @@ MIT License
 
 ### よくある問題と解決法
 
-#### API接続エラー
+#### 1. API接続エラー
 **症状**: フロントエンドからバックエンドに接続できない
-**原因**: URL設定の不一致
+**原因**: 
+- URL設定の不一致
+- CORS設定の問題
+- 統合デプロイメントでは相対パス`/api`を使用
+
 **解決策**:
-1. `.env.production`の`VITE_API_BASE_URL`を最新デプロイURLに更新
-2. `backend/vercel.json`の`CORS_ORIGINS`を同じURLに更新
-3. 両方再デプロイ
+1. `.env.production`の`VITE_API_BASE_URL=/api`を確認
+2. `vercel.json`の`CORS_ORIGINS`を最新URLに更新
+3. 再デプロイ後、ブラウザキャッシュをクリア
 
-#### 認証エラー
+#### 2. 認証エラー
 **症状**: ログインできない、トークンエラー
-**原因**: JWT秘密鍵の設定問題
-**解決策**: Vercel環境変数で`JWT_SECRET`を設定
+**原因**: 
+- JWT秘密鍵の設定問題
+- デモアカウント情報の不一致
 
-#### データが表示されない
-**症状**: 出勤記録が空
-**原因**: データベース接続問題
-**解決策**: `DATABASE_URL`環境変数を確認
+**解決策**: 
+1. Vercel環境変数で`JWT_SECRET`を設定
+2. デモアカウント: ID=`admin`, PW=`password`を確認
+
+#### 3. データベース接続エラー
+**症状**: 出勤記録が空、データベースエラー
+**原因**: 
+- PostgreSQL接続文字列の問題
+- Neon Cloudのコネクションプール設定
+
+**解決策**: 
+1. `DATABASE_URL`環境変数をVercelダッシュボードで確認
+2. Neon Cloudでデータベースの状態を確認
+3. SQLiteフォールバックの動作確認 (`DATABASE_URL`を空にしてテスト)
+
+#### 4. Serverless Functionsタイムアウト
+**症状**: APIレスポンスが遅い、タイムアウトエラー
+**原因**: 
+- コールドスタートの遅延
+- データベースコネクションの初期化
+
+**解決策**: 
+1. 初回アクセスは10-15秒待機
+2. Neon Cloudのプーリング使用を推奨
+3. コネクションプール設定 (max: 1) を確認
 
 ### 開発環境での確認方法
 
-#### 1. 最新デプロイメントURLの確認
+#### 1. システムの状態確認
 ```bash
 # Vercel CLIで最新のデプロイメントを確認
 vercel ls
+
+# プロジェクトのステータス確認
+vercel inspect
+
+# 環境変数の一覧確認
+vercel env ls
 ```
 
-#### 2. API接続テスト
+#### 2. APIエンドポイントのテスト
 ```bash
-# API接続テスト
-curl https://worklog-deploy.vercel.app/api/auth/login \
+# ヘルスチェック
+curl https://worklog-deploy.vercel.app/api/health
+
+# 認証テスト
+curl -X POST https://worklog-deploy.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"loginId":"admin","password":"password"}'
 
-# データベース接続テスト
+# データ取得テスト (認証後)
+export TOKEN="YOUR_JWT_TOKEN"
 curl https://worklog-deploy.vercel.app/api/entries \
-  -H "Authorization: Bearer YOUR_TOKEN"
+  -H "Authorization: Bearer $TOKEN"
+
+# 従業員名一覧取得
+curl https://worklog-deploy.vercel.app/api/entries/names \
+  -H "Authorization: Bearer $TOKEN"
 ```
 
-#### 3. 環境変数の設定確認
+#### 3. データベース接続テスト
 ```bash
-# Vercel環境変数の確認
-vercel env ls
+# PostgreSQL接続テスト (Neon Cloud)
+psql "$DATABASE_URL" -c "SELECT version();"
 
-# 環境変数の設定 (例)
+# テーブルの確認
+psql "$DATABASE_URL" -c "\dt"
+
+# サンプルデータの確認
+psql "$DATABASE_URL" -c "SELECT * FROM company_accounts LIMIT 1;"
+psql "$DATABASE_URL" -c "SELECT count(*) FROM attendance_entries;"
+```
+
+#### 4. 環境変数の設定・管理
+```bash
+# 新しい環境変数の設定
 vercel env add DATABASE_URL production
 vercel env add JWT_SECRET production
+
+# 環境変数の更新
+vercel env rm DATABASE_URL production
+vercel env add DATABASE_URL production
+
+# ローカル開発用環境変数
+vercel env pull .env.local
+```
+
+#### 5. ログ確認とデバッグ
+```bash
+# Vercelファンクションのログ確認
+vercel logs
+
+# 特定のファンクションのログ
+vercel logs --follow
+
+# ローカルでのデバッグ開発
+vercel dev
+```
+
+### パフォーマンスの最適化
+
+#### フロントエンドの最適化
+```bash
+# Viteビルドの最適化
+npm run build -- --mode production
+
+# バンドルサイズの分析
+npm run build -- --analyze
+
+# キャッシュのクリア
+rm -rf dist/ .vite/
+```
+
+#### バックエンドの最適化
+```bash
+# TypeScriptコンパイル確認
+cd backend && npm run build
+
+# コネクションプールの設定確認
+# max: 1 (推奨), min: 0, acquire: 30000, idle: 10000
 ```
 
 ## 📚 詳細ドキュメント
 
 - **技術詳細**: [CLAUDE.md](./CLAUDE.md) - システム設計と実装詳細
-- **デプロイガイド**: [DEPLOYMENT.md](./DEPLOYMENT.md) - Vercelデプロイ手順
-- **開発ガイド**: [DEVELOPMENT.md](./DEVELOPMENT.md) - 開発環境セットアップ
+- **APIリファレンス**: 本 README の API エンドポイントセクションを参照
+- **デプロイメントガイド**: 本 README のデプロイメントセクションを参照
+- **トラブルシューティング**: 本 README のトラブルシューティングセクションを参照
