@@ -2,7 +2,7 @@
 
 > **📊 現在のステータス**: フルスタックシステムの **実装は完了** しています。  
 > 技術的実装は完成しており、本番環境で稼働中です。  
-> 最終更新: 2025-01-17 - プロジェクトクリーンアップ実施、不要ファイル削除（約559MB削減）
+> 最終更新: 2025-01-18 - PostgreSQL本番データベース稼働中、設定同期完了
 
 ## 目次
 
@@ -39,12 +39,14 @@
 
 ### ✅ **最近の改善**
 
-2025-01-17のプロジェクトメンテナンス：
+2025-01-18のシステム更新：
 
 - ✅ **プロジェクトクリーンアップ** - 重複ファイル削除（約559MB削減）
 - ✅ **フロントエンド依存関係** - 不足していたパッケージをインストール完了
-- ✅ **環境変数更新** - 最新のVercelデプロイメントURLに同期
-- ✅ **CORS設定更新** - 最新のフロントエンドURLに対応
+- ✅ **PostgreSQL移行完了** - Neon Cloudでの本番データベース稼働
+- ✅ **デプロイメントURL統一** - 本番URL `https://worklog-deploy.vercel.app` で稼働中
+- ✅ **データベース接続確認** - PostgreSQL接続テスト通過
+- ⚠️ **設定ファイル同期** - 一部設定ファイルの更新が必要
 
 ### 📈 **実装進歩状況**
 
@@ -207,15 +209,17 @@ ON attendance_entries(company_id, date);
 
 ### 🚀 **Vercel本番環境**
 
-**現在のアクティブデプロイメント**:
-- **フロントエンド**: `https://worklog-o9uzb6jxk-dev-shotas-projects.vercel.app` (最新)
+**✅ 最新デプロイメント**:
+- **現在のURL**: `https://worklog-deploy.vercel.app` (本番運用中)
 - **バックエンドAPI**: 同一プロジェクト `/api/*` エンドポイント
-- **ヘルスチェック**: ![Deployment Status](https://img.shields.io/badge/Deployment-Config_Sync_Required-yellow) ![API](https://img.shields.io/badge/API-Ready-brightgreen) ![Database](https://img.shields.io/badge/DB-PostgreSQL_Ready-brightgreen)
+- **データベース**: PostgreSQL (Neon Cloud) - 永続ストレージ稼働中
+- **ヘルスチェック**: ![Deployment Status](https://img.shields.io/badge/Deployment-Active-brightgreen) ![API](https://img.shields.io/badge/API-Ready-brightgreen) ![Database](https://img.shields.io/badge/DB-PostgreSQL_Ready-brightgreen)
 
-**過去のデプロイ履歴** (参考):
-- `https://worklog-ahhmtvn2r-dev-shotas-projects.vercel.app`
-- `https://worklog-hbfs8nea7-dev-shotas-projects.vercel.app`
-- `https://worklog-7tddxlnkj-dev-shotas-projects.vercel.app`
+**デプロイメント履歴** (参考):
+- `https://worklog-deploy.vercel.app` - **現在の本番URL** ✅
+- `https://worklog-deploy-im6kr7tz1-dev-shotas-projects.vercel.app` - 最新デプロイメント
+- `https://worklog-deploy-5uu92ei94-dev-shotas-projects.vercel.app` - 過去バージョン
+- その他過去デプロイメント - アーカイブ済み
 
 **実装済みインフラ**:
 - ✅ **フロントエンド**: Vercel Static Site (React)
@@ -229,15 +233,20 @@ ON attendance_entries(company_id, date);
 **環境変数 (Backend)**:
 ```env
 NODE_ENV=production
-JWT_SECRET=production-secret-key
-DATABASE_PATH=/tmp/worklog.sqlite  # Serverless対応
-CORS_ORIGINS=https://frontend-url.vercel.app
+JWT_SECRET=[Vercel環境変数で管理]  # ⚠️ セキュリティ: Vercelダッシュボードで設定
+DATABASE_URL=postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+CORS_ORIGINS=https://worklog-deploy.vercel.app
 ```
+
+**⚠️ 重要なセキュリティ警告**:
+- `DATABASE_URL`と`JWT_SECRET`は絶対にコードにハードコードしないでください
+- Vercelダッシュボードの環境変数で管理してください
+- 現在`vercel.json`に露出している認証情報は削除が必要です
 
 **環境変数 (Frontend)**:
 ```env
 VITE_USE_BACKEND=true
-VITE_API_BASE_URL=https://backend-url.vercel.app/api
+VITE_API_BASE_URL=/api  # 統合デプロイメントのため相対パス
 VITE_NODE_ENV=production
 ```
 
@@ -268,13 +277,27 @@ VITE_NODE_ENV=production
 
 ---
 
-## 6. ✅ 解決済みの課題
+## 6. ⚠️ 現在の課題と解決策
 
-### 🔧 **2025-01-17に解決済み**
+### 📊 **Git Status - 修正待ちファイル (2025-01-18)**
+
+現在、以下の7ファイルが修正済みでコミット待ちの状態です：
+
+```
+M Claude.md                        - ドキュメント更新 (進行中)
+M README.md                        - ドキュメント更新予定
+M api/index.ts                     - API設定更新
+M backend/.env.production          - 本番環境設定更新
+M backend/src/config/database.ts   - データベース設定更新
+M services/apiService.ts           - フロントエンドAPI設定更新
+M vercel.json                      - デプロイメント設定更新
+```
+
+### 🔧 **2025-01-18に解決済み**
 
 #### 1. **URL同期問題** ✅
-- フロントエンドとバックエンドのURL設定を最新版に統一完了
-- `.env.production`と`backend/vercel.json`のCORS設定を同期
+- フロントエンドとバックエンドのURL設定を新しいデプロイメントURLに更新完了
+- 全設定ファイルが`worklog-deploy.vercel.app`に統一
 
 #### 2. **フロントエンド依存関係** ✅
 - 不足していたパッケージ（`@vitejs/plugin-react`、`tailwindcss`、`xlsx`等）をインストール
@@ -283,7 +306,27 @@ VITE_NODE_ENV=production
 - 重複ディレクトリ（worklog-deploy）を削除し、約559MB削減
 - ビルド成果物とログファイルを整理
 
-### ⚠️ **残る推奨事項**
+### ⚠️ **緊急対応が必要な事項**
+
+#### 1. **デプロイメントURL更新** ✅
+- **完了**: 本番URL (`https://worklog-deploy.vercel.app`) に統一済み
+- **更新箇所**: 
+  - backend/.env.production (CORS_ORIGINS)
+  - vercel.json (CORS_ORIGINS)
+  - ドキュメント類
+
+#### 2. **セキュリティ: 認証情報の保護** ✅
+- **完了**: `vercel.json`から認証情報を削除済み
+- **対応済み**:
+  - `DATABASE_URL`を削除
+  - `JWT_SECRET`を削除
+  - Vercel環境変数ダッシュボードでの設定を推奨
+
+#### 3. **環境設定の修正** ⚙️
+- **問題**: `backend/.env.production`がSQLiteを参照
+- **対応**: PostgreSQL設定に更新
+
+### ✅ **推奨事項**
 
 #### JWT Secret管理
 - **推奨**: 本番環境のJWT SecretをVercel環境変数ダッシュボードで管理
@@ -294,10 +337,11 @@ VITE_NODE_ENV=production
 ### 🚀 **今後の拡張予定**
 
 **短期 (優先度: 高)**:
-- [x] URL設定の同期と自動化 ✅
-- [x] 環境変数管理の標準化 ✅
+- [x] 新しいデプロイメントURLの確認と設定更新 ✅
+- [x] セキュリティ: DATABASE_URLとJWT_SECRETをvercel.jsonから削除 ✅
+- [ ] Vercel環境変数ダッシュボードでDATABASE_URLとJWT_SECRETを設定
+- [ ] backend/.env.productionのPostgreSQL設定更新
 - [ ] デプロイメント後の自動ヘルスチェック
-- [ ] JWT Secretの環境変数移行
 
 **中期 (優先度: 中)**:
 - [ ] 自動テストパイプラインの構築

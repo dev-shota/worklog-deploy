@@ -69,15 +69,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Handle the request with the Express app
     cachedApp(req, res);
   } catch (error) {
-    console.error('Serverless function error:', error);
-    console.error('Error stack:', error.stack);
-    
-    // Send proper error response
+  console.error('Serverless function error:', error);
+  console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace available');
+  
+  // Send proper error response
     if (!res.headersSent) {
       res.status(500).json({
         success: false,
         error: 'Internal server error',
-        message: process.env.NODE_ENV === 'development' ? error.message : 'Something went wrong',
+        message: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.message : String(error)) : 'Something went wrong',
         timestamp: new Date().toISOString()
       });
     }

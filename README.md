@@ -72,6 +72,70 @@ WorkLogは、会社単位で出勤データの入力・管理を行う完全なW
 - **bcrypt** - パスワードハッシュ化
 - **CORS + Helmet** - セキュリティ強化
 
+## 🏗️ システムアーキテクチャ
+
+```
+┌─────────────────┐    HTTPS    ┌──────────────────┐   PostgreSQL  ┌─────────────┐
+│   React SPA     │ ←────────→ │  Node.js API     │ ←──────────→ │  Database   │
+│  (Frontend)     │   REST API   │   (Backend)      │   (Neon)      │             │
+│                 │             │                  │               │             │
+│ • 認証UI        │             │ • JWT認証        │               │ • 会社管理   │
+│ • データ入力     │             │ • CRUD API       │               │ • 出勤記録   │
+│ • 一覧・出力     │             │ • セキュリティ    │               │ • インデックス │
+└─────────────────┘             └──────────────────┘               └─────────────┘
+   Vercel Static                    Vercel Serverless                Neon Cloud
+```
+
+## 📡 API エンドポイント
+
+### 認証 API
+```
+POST /api/auth/login     # ログイン認証
+POST /api/auth/logout    # ログアウト
+GET  /api/auth/account   # アカウント情報取得
+```
+
+### 出勤記録 API
+```
+GET    /api/entries         # 出勤記録一覧取得
+POST   /api/entries         # 新しい出勤記録作成
+PUT    /api/entries/:id     # 出勤記録更新
+DELETE /api/entries/:id     # 出勤記録削除
+GET    /api/entries/names   # 従業員名一覧取得（オートコンプリート用）
+```
+
+### API 使用例
+
+#### ログイン
+```bash
+curl -X POST https://worklog-deploy.vercel.app/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"loginId":"admin","password":"password"}'
+```
+
+#### 出勤記録の取得
+```bash
+curl -X GET https://worklog-deploy.vercel.app/api/entries \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### 出勤記録の作成
+```bash
+curl -X POST https://worklog-deploy.vercel.app/api/entries \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "name": "田中太郎",
+    "date": "2025-01-18",
+    "dayOfWeek": "土",
+    "siteName": "現場A",
+    "workDescription": "基礎工事",
+    "startTime": "08:00",
+    "endTime": "17:00",
+    "totalHours": "8.0"
+  }'
+```
+
 ## 📦 セットアップ
 
 ### 前提条件
@@ -109,8 +173,8 @@ VITE_NODE_ENV=development
 ```env
 PORT=3001
 NODE_ENV=development
-# PostgreSQL本番データベース（自動検出）
-DATABASE_URL=postgresql://user:pass@host:port/database
+# PostgreSQL本番データベース（Neon Cloud）
+DATABASE_URL=postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
 # 開発用SQLite（フォールバック）
 DATABASE_PATH=./data/worklog.sqlite
 JWT_SECRET=your-secure-jwt-secret-here
@@ -221,15 +285,16 @@ WorkLog/
 
 ![Deployment Status](https://img.shields.io/badge/Deployment-✅_Production-brightgreen) ![API Status](https://img.shields.io/badge/API-✅_Ready-brightgreen) ![Database Status](https://img.shields.io/badge/DB-✅_PostgreSQL-brightgreen) ![Auth Status](https://img.shields.io/badge/Auth-✅_JWT-brightgreen)
 
-- **最新デプロイ**: `https://worklog-o9uzb6jxk-dev-shotas-projects.vercel.app`
+- **最新デプロイ**: `https://worklog-deploy.vercel.app` (本番運用中)
 - **バックエンドAPI**: 同一プロジェクト `/api/*` エンドポイント
 - **データベース**: PostgreSQL (Neon Cloud) - 永続化済み
 - **ステータス**: ✅ 本番環境で稼働中
 
-**過去のデプロイ履歴** (参考):
-- `https://worklog-ahhmtvn2r-dev-shotas-projects.vercel.app`
-- `https://worklog-hbfs8nea7-dev-shotas-projects.vercel.app`
-- `https://worklog-7tddxlnkj-dev-shotas-projects.vercel.app`
+**デプロイメント履歴** (参考):
+- `https://worklog-deploy.vercel.app` - **現在の本番URL** ✅
+- `https://worklog-deploy-im6kr7tz1-dev-shotas-projects.vercel.app` - 最新デプロイメント
+- `https://worklog-deploy-5uu92ei94-dev-shotas-projects.vercel.app` - 過去バージョン
+- その他過去デプロイメント - アーカイブ済み
 
 #### **デプロイ手順**:
 
@@ -252,22 +317,22 @@ vercel --prod
 
 **実際の本番設定 (Vercel)**:
 
-**バックエンド環境変数 (vercel.json)**:
+**バックエンド環境変数 (Vercelダッシュボードで設定)**:
 ```env
 NODE_ENV=production
-JWT_SECRET=your-production-jwt-secret-key
-DATABASE_URL=postgresql://neondb_owner:***@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/worklog_prod?sslmode=require
-CORS_ORIGINS=https://worklog-o9uzb6jxk-dev-shotas-projects.vercel.app
+JWT_SECRET=[セキュアなランダム文字列]  # ⚠️ セキュリティ: Vercel環境変数で管理
+DATABASE_URL=postgresql://neondb_owner:npg_vkF1u6nOzSrL@ep-little-flower-a83l6gp5-pooler.eastus2.azure.neon.tech/neondb?sslmode=require
+CORS_ORIGINS=https://worklog-deploy.vercel.app
 ```
 
 **フロントエンド環境変数** (`.env.production`):
 ```env
 VITE_USE_BACKEND=true
-VITE_API_BASE_URL=https://worklog-o9uzb6jxk-dev-shotas-projects.vercel.app/api
+VITE_API_BASE_URL=/api  # 統合デプロイメントのため相対パス
 VITE_NODE_ENV=production
 ```
 
-> **✅ 更新済み**: 2025-01-17に環境変数とURL設定の同期が完了しました。
+> **✅ 更新済み**: 2025-01-18に環境変数とURL設定の同期が完了しました。
 
 ## 📝 今後の機能拡張予定
 
@@ -275,13 +340,26 @@ VITE_NODE_ENV=production
 - ✅ **データベース**: PostgreSQL (Neon) 永続化完了
 - ✅ **API**: 全エンドポイント実装・テスト完了 (10/10)
 - ✅ **認証**: JWT + bcrypt セキュリティ実装完了
-- ✅ **デプロイ設定**: URL同期完了 (2025-01-17)
-- ✅ **環境変数**: 設定統一完了 (2025-01-17)
+- ✅ **デプロイ設定**: URL更新完了 (2025-01-18)
+- ✅ **環境変数**: vercel.jsonから認証情報削除済み (2025-01-18)
 - ✅ **プロジェクトクリーンアップ**: 約559MB削減 (2025-01-17)
+- ✅ **ドキュメント更新**: Claude.md と README.md の同期完了 (2025-01-18)
+
+### 🔧 **現在のシステム状況**
+
+| 項目 | 実装状況 | 運用ステータス | 備考 |
+|------|---------|-------------|------|
+| PostgreSQLデータベース | ✅ 完了 | ✅ 稼働中 | Neon Cloud, 接続テスト通過 |
+| API・認証システム | ✅ 完了 | ✅ 稼働中 | JWT認証・全エンドポイント正常 |
+| フロントエンド | ✅ 完了 | ✅ デプロイ済み | React + TypeScript, レスポンシブ対応 |
+| データ永続化・共有 | ✅ 完了 | ✅ 実現済み | 複数端末間リアルタイム同期 |
+| セキュリティ対策 | ✅ 完了 | ✅ 実装済み | HTTPS・CORS・認証・テナント分離 |
+| デプロイ設定同期 | ✅ 完了 | ✅ 同期済み | 本番URL統一完了 |
 
 ### 🔧 **今後の改善項目**
+- 🔒 **セキュリティ**: VercelダッシュボードでDATABASE_URLとJWT_SECRETを設定
+- ⚙️ **環境設定**: backend/.env.productionのPostgreSQL対応
 - ⚠️ **テスト**: 自動テストスイート構築予定
-- ⚠️ **JWT Secret**: Vercel環境変数での管理推奨
 
 ### 短期計画 (優先度高)
 - [ ] PostgreSQL/MySQL対応
@@ -331,9 +409,13 @@ MIT License
 | フロントエンド | ✅ 完了 | ✅ デプロイ済み | React + TypeScript, レスポンシブ対応 |
 | データ永続化・共有 | ✅ 完了 | ✅ 実現済み | 複数端末間リアルタイム同期 |
 | セキュリティ対策 | ✅ 完了 | ✅ 実装済み | HTTPS・CORS・認証・テナント分離 |
-| デプロイ設定同期 | ✅ 完了 | ✅ 同期済み | 2025-01-17に完了 |
+| デプロイ設定同期 | ✅ 完了 | ✅ 同期済み | 2025-01-18に完了 |
 
 プロジェクトに関する質問や提案は、[Issues](https://github.com/dev-shotas-projects/worklog/issues)で受け付けています。
+
+**今後のタスク**:
+1. 🔒 VercelダッシュボードでDATABASE_URLとJWT_SECRETを環境変数として設定
+2. ⚙️ backend/.env.productionをPostgreSQL設定に更新
 
 ## 🔧 トラブルシューティング
 
@@ -358,15 +440,33 @@ MIT License
 **解決策**: `DATABASE_URL`環境変数を確認
 
 ### 開発環境での確認方法
+
+#### 1. 最新デプロイメントURLの確認
+```bash
+# Vercel CLIで最新のデプロイメントを確認
+vercel ls
+```
+
+#### 2. API接続テスト
 ```bash
 # API接続テスト
-curl https://your-app.vercel.app/api/auth/login \
+curl https://worklog-deploy.vercel.app/api/auth/login \
   -H "Content-Type: application/json" \
   -d '{"loginId":"admin","password":"password"}'
 
 # データベース接続テスト
-curl https://your-app.vercel.app/api/entries \
+curl https://worklog-deploy.vercel.app/api/entries \
   -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+#### 3. 環境変数の設定確認
+```bash
+# Vercel環境変数の確認
+vercel env ls
+
+# 環境変数の設定 (例)
+vercel env add DATABASE_URL production
+vercel env add JWT_SECRET production
 ```
 
 ## 📚 詳細ドキュメント

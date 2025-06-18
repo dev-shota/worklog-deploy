@@ -96,9 +96,10 @@ export const initializeDatabase = async (): Promise<Database> => {
       
       console.log('PostgreSQL database connection successful');
       return pgDatabase;
-    } catch (error) {
+    } catch (error: unknown) {
       console.error('PostgreSQL connection failed:', error);
-      throw new Error(`Database connection failed: ${error.message}`);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      throw new Error(`Database connection failed: ${errorMessage}`);
     }
   } else {
     // Fallback to SQLite

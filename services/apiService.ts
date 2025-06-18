@@ -2,12 +2,7 @@ import { AttendanceEntry } from '../types';
 import { AUTH_TOKEN_KEY } from '../config';
 
 // 環境変数でバックエンドの使用を制御
-const USE_BACKEND = import.meta.env.VITE_USE_BACKEND === 'true';
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
-
-// localStorage用の定数（後方互換性のため）
-const ENTRIES_STORAGE_KEY = 'attendanceApp_attendanceEntries';
-const MOCK_API_LATENCY = 300; 
 
 const getAuthHeaders = (): Record<string, string> => {
   const token = localStorage.getItem(AUTH_TOKEN_KEY);
