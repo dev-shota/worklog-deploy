@@ -20,7 +20,7 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "CORS_ORIGINS": "https://worklog-deploy-5uu92ei94-dev-shotas-projects.vercel.app",
+    "CORS_ORIGINS": "https://worklog-deploy.vercel.app",
     "VITE_USE_BACKEND": "true",
     "VITE_API_BASE_URL": "/api"
   },
